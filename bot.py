@@ -46,7 +46,7 @@ def update_custom_attributes(conversation_id, attributes):
     try:
         url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}/custom_attributes"
         headers = {
-            "Authorization": f"Bearer {API_TOKEN}",
+            "api_access_token": f"{API_TOKEN}",
             "Content-Type": "application/json"
         }
         payload = {"custom_attributes": attributes}
@@ -64,7 +64,7 @@ def update_conversation_status(conversation_id, status):
     try:
         url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}"
         headers = {
-            "Authorization": f"Bearer {API_TOKEN}",
+            "api_access_token": f"{API_TOKEN}",
             "Content-Type": "application/json"
         }
         payload = {"status": status}
