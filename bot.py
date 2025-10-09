@@ -83,12 +83,12 @@ def is_business_hours():
     current_time = datetime.now(tz)
     
     # Weekend check
-    if current_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
-        return False
+    # if current_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
+    #     return False
     
-    # Time check (9 AM - 6 PM)
-    if current_time.hour < 9 or current_time.hour >=24:
-        return False
+    # # Time check (9 AM - 6 PM)
+    # if current_time.hour < 9 or current_time.hour >=24:
+    #     return False
     
     return True
 
