@@ -11,7 +11,7 @@ CHATWOOT_URL = "https://app.chatwoot.com"  # or your self-hosted URL
 API_TOKEN = "7kFSFNvE9wnxmp8DjFEyqdGR"
 ACCOUNT_ID = "137894"  # Your account ID
 
-# Conversation state storage (use Redis/Database in production)
+# Conversation state storage (use Redis/Database in production)..
 conversation_states = {}
 
 def send_message(conversation_id, content, message_type="outgoing", content_type="text", content_attributes=None):
