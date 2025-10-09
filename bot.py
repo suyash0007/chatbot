@@ -87,7 +87,7 @@ def is_business_hours():
         return False
     
     # Time check (9 AM - 6 PM)
-    if current_time.hour < 9 or current_time.hour >= 18:
+    if current_time.hour < 9 or current_time.hour >=24:
         return False
     
     return True
