@@ -19,7 +19,7 @@ def send_message(conversation_id, content, message_type="outgoing", content_type
     try:
         url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}/messages"
         headers = {
-            "Authorization": f"Bearer {API_TOKEN}",
+            "api_access_token": f"{API_TOKEN}",
             "Content-Type": "application/json"
         }
         payload = {
