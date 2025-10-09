@@ -69,7 +69,7 @@ def update_conversation_status(conversation_id, status):
         }
         payload = {"status": status}
         
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.patch(url, headers=headers, json=payload)
         response.raise_for_status()
         print(f"Conversation {conversation_id} status updated to: {status}")
         return response.json()
