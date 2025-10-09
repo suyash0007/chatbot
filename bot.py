@@ -212,7 +212,8 @@ def health_check():
     }), 200
 
 if __name__ == "__main__":
-    print("Starting Chatwoot webhook server...")
+    port = int(os.environ.get('PORT', 8000))
+    print(f"Starting server on port {port}")
     print(f"Account ID: {ACCOUNT_ID}")
     print(f"Chatwoot URL: {CHATWOOT_URL}")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)
