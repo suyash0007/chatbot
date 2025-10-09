@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # Configuration
 CHATWOOT_URL = "https://app.chatwoot.com"  # or your self-hosted URL
-API_TOKEN = "7kFSFNvE9wnxmp8DjFEyqdGR"
+API_TOKEN = "pYTwk9zDLZaMpe3XUL47YjjH"
 ACCOUNT_ID = "137894"  # Your account ID
 
 # Conversation state storage (use Redis/Database in production)..
