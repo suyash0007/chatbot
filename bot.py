@@ -122,31 +122,21 @@ def handle_webhook():
     print(f"Full payload: {data}")
     
     # Handle conversation creation OR widget triggered - send first question
-    if event in ["conversation_created", "webwidget_triggered"]:
-    # Extract conversation ID correctly based on event type
-     if event == "webwidget_triggered":
-        # For webwidget_triggered, conversation ID is in current_conversation
-        conversation_id = data.get("current_conversation", {}).get("id")
-        print(f"   WebWidget - Extracted conversation_id: {conversation_id}")
-     else:
-        # For conversation_created, it's in the root
+    if event == "conversation_created" or event == "webwidget_triggered":
         conversation_id = data.get("id")
-        print(f"   ConvCreated - Extracted conversation_id: {conversation_id}")
-    
-     if not conversation_id:
-        print(f"❌ Could not extract conversation_id from {event} event")
-        return jsonify({"status": "error", "message": "No conversation ID"}), 400
-    
-    # Check if we already greeted
-     if conversation_id not in conversation_states:
-        print(f"✨ New conversation {conversation_id} - sending greeting")
-        conversation_states[conversation_id] = "awaiting_name"
-        send_message(conversation_id, "Hi! Welcome to our support. What is your name?")
-        return jsonify({"status": "success"}), 200
-     else:
-        print(f"⏭️  Already greeted conversation {conversation_id}")
-        return jsonify({"status": "ignored"}), 200
-
+        
+        # Check if conversation already has messages (to avoid duplicate greetings)
+        conversation_data = data.get("current_conversation") or data
+        messages = conversation_data.get("messages", [])
+        
+        if len(messages) == 0:  # No messages yet, send greeting
+            print(f"New conversation {conversation_id} - sending initial greeting")
+            conversation_states[conversation_id] = "awaiting_name"
+            send_message(conversation_id, "Hi! Welcome to our support. What is your name?")
+            return jsonify({"status": "success", "message": "Initial greeting sent"}), 200
+        else:
+            print(f"Conversation {conversation_id} already has messages, skipping greeting")
+            return jsonify({"status": "ignored", "reason": "Conversation already started"}), 200
     
     # Only process incoming messages for subsequent interactions
     if event != "message_created":
