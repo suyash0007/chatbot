@@ -123,7 +123,7 @@ def handle_webhook():
     
     # Handle conversation creation OR widget triggered - send first question
     if event == "conversation_created" or event == "webwidget_triggered":
-        conversation_id = data.get("id")
+        conversation_id = data.get("conversation", {}).get("id")
         
         # Check if conversation already has messages (to avoid duplicate greetings)
         conversation_data = data.get("current_conversation") or data
