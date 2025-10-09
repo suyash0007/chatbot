@@ -62,14 +62,14 @@ def update_custom_attributes(conversation_id, attributes):
 def update_conversation_status(conversation_id, status):
     """Update conversation status (pending/open/resolved)"""
     try:
-        url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}"
+        url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}/toggle_status"
         headers = {
             "api_access_token": f"{API_TOKEN}",
             "Content-Type": "application/json"
         }
         payload = {"status": status}
         
-        response = requests.patch(url, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         print(f"Conversation {conversation_id} status updated to: {status}")
         return response.json()
