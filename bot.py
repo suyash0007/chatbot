@@ -181,12 +181,6 @@ def handle_webhook():
     
     conversation_id = data.get("conversation", {}).get("id")
     user_message = data.get("content", "").strip()
-
-    # Get the submitted value from the button click
-    if not user_message and 'content_attributes' in data:
-        submitted_values = data['content_attributes'].get('submitted_values')
-        if submitted_values and len(submitted_values) > 0:
-            user_message = submitted_values[0].get('value', '').strip()
     
     print(f"Processing message from conversation {conversation_id}: {user_message}")
     
