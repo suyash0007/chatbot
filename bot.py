@@ -127,13 +127,22 @@ def create_conversation(contact_id, inbox_id, source_id):
             "contact_id": contact_id
         }
         
+        print(f"Attempting to create conversation with payload: {payload}")
+        
         response = requests.post(url, headers=headers, json=payload)
+        
+        print(f"API Response Status Code: {response.status_code}")
+        print(f"API Response Body: {response.text}")
+        
         response.raise_for_status()
         conversation_id = response.json().get('payload', {}).get('id')
         print(f"New conversation created with ID: {conversation_id}")
         return conversation_id
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP Error creating conversation: {err}")
+        return None
     except Exception as e:
-        print(f"Error creating conversation: {e}")
+        print(f"General Error creating conversation: {e}")
         return None
 
 @app.route("/webhook", methods=["POST"])
