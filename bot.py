@@ -113,6 +113,29 @@ def send_options_message(conversation_id):
         content_attributes={"items": options}
     )
 
+def create_conversation(contact_id, inbox_id, source_id):
+    """Create a new conversation via Chatwoot API"""
+    try:
+        url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations"
+        headers = {
+            "api_access_token": API_TOKEN,
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "source_id": source_id,
+            "inbox_id": inbox_id,
+            "contact_id": contact_id
+        }
+        
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        conversation_id = response.json().get('payload', {}).get('id')
+        print(f"New conversation created with ID: {conversation_id}")
+        return conversation_id
+    except Exception as e:
+        print(f"Error creating conversation: {e}")
+        return None
+
 @app.route("/webhook", methods=["POST"])
 def handle_webhook():
     """Main webhook handler"""
@@ -121,16 +144,23 @@ def handle_webhook():
     print(f"Received webhook event: {event}")
     print(f"Full payload: {data}")
     
-    # Handle conversation creation - send first question automatically
-    if event == "conversation_created":
-        conversation_id = data.get("id")
-        print(f"New conversation created: {conversation_id}")
-        
-        # Initialize state and send first question
-        conversation_states[conversation_id] = "awaiting_name"
-        send_message(conversation_id, "Hi! Welcome to our support. What is your name?")
-        
-        return jsonify({"status": "success", "message": "First question sent"}), 200
+    # Handle widget trigger event to create conversation and send first message
+    if event == "webwidget_triggered":
+        contact_id = data.get("contact", {}).get("id")
+        inbox_id = data.get("inbox", {}).get("id")
+        source_id = data.get("source_id")
+
+        if contact_id and inbox_id and source_id:
+            conversation_id = create_conversation(contact_id, inbox_id, source_id)
+            if conversation_id:
+                print(f"Widget triggered for conversation: {conversation_id}")
+                # Initialize state and send first question
+                conversation_states[conversation_id] = "awaiting_name"
+                send_message(conversation_id, "Hi! Welcome to our support. What is your name?")
+                return jsonify({"status": "success", "message": "First question sent"}), 200
+        else:
+            print("Missing required IDs in webwidget_triggered payload.")
+            return jsonify({"status": "ignored", "reason": "Missing IDs"}), 200
     
     # Only process incoming messages for subsequent interactions
     if event != "message_created":
@@ -217,4 +247,3 @@ if __name__ == "__main__":
     print(f"Account ID: {ACCOUNT_ID}")
     print(f"Chatwoot URL: {CHATWOOT_URL}")
     app.run(host='0.0.0.0', port=port, debug=False)
-
