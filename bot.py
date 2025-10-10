@@ -7,9 +7,9 @@ import pytz
 app = Flask(__name__)
 
 # Configuration
-CHATWOOT_URL = "https://app.chatwoot.com"  # or your self-hosted URL
+CHATWOOT_URL = "https://app.chatwoot.com" 
 API_TOKEN = "wzMpqWfSCmMDtXjvtVv5r2iD"
-ACCOUNT_ID = "137894"  # Your account ID
+ACCOUNT_ID = "137894"
 
 # Conversation state storage (use Redis/Database in production)..
 conversation_states = {}
@@ -41,22 +41,38 @@ def send_message(conversation_id, content, message_type="outgoing", content_type
         print(f"Error sending message: {e}")
         return None
 
-def update_custom_attributes(conversation_id, attributes):
-    """Update conversation custom attributes"""
+def update_custom_attributes(conversation_id, new_attributes):
+    """
+    Update conversation custom attributes by merging with existing attributes.
+    """
     try:
-        url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}/custom_attributes"
+        # Step 1: Fetch existing custom attributes
+        url_get = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}"
         headers = {
-            "api_access_token": f"{API_TOKEN}",
-            "Content-Type": "application/json"
+            "api_access_token": f"{API_TOKEN}"
         }
-        payload = {"custom_attributes": attributes}
+        response_get = requests.get(url_get, headers=headers)
+        response_get.raise_for_status()
         
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        print(f"Custom attributes updated for conversation {conversation_id}: {attributes}")
-        return response.json()
+        current_attributes = response_get.json().get('custom_attributes', {})
+        
+        # Step 2: Merge new attributes with existing ones
+        updated_attributes = {**current_attributes, **new_attributes}
+        
+        # Step 3: Send the merged attributes back to Chatwoot
+        url_post = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}/custom_attributes"
+        payload = {"custom_attributes": updated_attributes}
+        
+        response_post = requests.post(url_post, headers=headers, json=payload)
+        response_post.raise_for_status()
+        
+        print(f"Custom attributes updated for conversation {conversation_id}: {updated_attributes}")
+        return response_post.json()
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP Error updating custom attributes: {err}")
+        return None
     except Exception as e:
-        print(f"Error updating custom attributes: {e}")
+        print(f"General Error updating custom attributes: {e}")
         return None
 
 def update_conversation_status(conversation_id, status):
@@ -136,6 +152,7 @@ def create_conversation(contact_id, inbox_id, source_id):
         
         response.raise_for_status()
         conversation_id = response.json().get('id')
+        
         print(f"New conversation created with ID: {conversation_id}")
         return conversation_id
     except requests.exceptions.HTTPError as err:
@@ -144,6 +161,7 @@ def create_conversation(contact_id, inbox_id, source_id):
     except Exception as e:
         print(f"General Error creating conversation: {e}")
         return None
+
 
 @app.route("/webhook", methods=["POST"])
 def handle_webhook():
