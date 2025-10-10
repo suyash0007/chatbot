@@ -135,7 +135,7 @@ def create_conversation(contact_id, inbox_id, source_id):
         print(f"API Response Body: {response.text}")
         
         response.raise_for_status()
-        conversation_id = response.json().get('payload', {}).get('id')
+        conversation_id = response.json().get('id')
         print(f"New conversation created with ID: {conversation_id}")
         return conversation_id
     except requests.exceptions.HTTPError as err:
