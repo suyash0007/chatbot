@@ -59,6 +59,24 @@ def update_custom_attributes(conversation_id, attributes):
         print(f"Error updating custom attributes: {e}")
         return None
 
+def update_contact_attributes(contact_id, attributes):
+    """Update contact attributes (email, name, etc.)"""
+    try:
+        url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/contacts/{contact_id}"
+        headers = {
+            "api_access_token": f"{API_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        payload = {"contact": attributes}
+        
+        response = requests.put(url, headers=headers, json=payload)
+        response.raise_for_status()
+        print(f"Contact {contact_id} updated with attributes: {attributes}")
+        return response.json()
+    except Exception as e:
+        print(f"Error updating contact attributes: {e}")
+        return None
+
 def update_conversation_status(conversation_id, status):
     """Update conversation status (pending/open/resolved)"""
     try:
