@@ -184,16 +184,46 @@ def handle_webhook():
     print(f"Received webhook event: {event}")
     print(f"Full payload: {data}")
     
-    # Handle widget trigger event to create conversation and send first message
+    # Handle widget trigger event - only create conversation if none exists
     if event == "webwidget_triggered":
         contact_id = data.get("contact", {}).get("id")
         inbox_id = data.get("inbox", {}).get("id")
         source_id = data.get("source_id")
+        current_conversation = data.get("current_conversation")
+        
+        # Extract user information from contact data
+        contact_data = data.get("contact", {})
+        user_email = contact_data.get("email")
+        user_name = contact_data.get("name")
+        user_phone = contact_data.get("phone_number")
+
+        # Check if there's already an active conversation
+        if current_conversation:
+            print(f"Contact already has active conversation: {current_conversation}")
+            return jsonify({"status": "ignored", "reason": "Active conversation exists"}), 200
 
         if contact_id and inbox_id and source_id:
             conversation_id = create_conversation(contact_id, inbox_id, source_id)
             if conversation_id:
-                print(f"Widget triggered for conversation: {conversation_id}")
+                print(f"Widget triggered for NEW conversation: {conversation_id}")
+                
+                # Update contact with user information if available
+                if user_email or user_name or user_phone:
+                    contact_attributes = {}
+                    if user_email:
+                        contact_attributes["email"] = user_email
+                    if user_name:
+                        contact_attributes["name"] = user_name
+                    if user_phone:
+                        contact_attributes["phone_number"] = user_phone
+                    
+                    update_contact_attributes(contact_id, contact_attributes)
+                    print(f"Updated contact {contact_id} with user info: {contact_attributes}")
+                
+                # Store user email in conversation custom attributes for easy access
+                if user_email:
+                    update_custom_attributes(conversation_id, {"user_email": user_email})
+                
                 # Always start with the same flow - ask for requirements
                 conversation_states[conversation_id] = "awaiting_requirements"
                 send_message(conversation_id, "Hi there! I'm Aayush, your Account Manager at Kuberns\nWelcome aboard! I'd love to help you get started with your account.\n\nCould you tell me a bit more about your requirements or what you'd like to achieve with our platform?")
