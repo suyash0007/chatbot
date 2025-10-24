@@ -78,40 +78,53 @@ def update_conversation_status(conversation_id, status):
         return None
 
 def is_business_hours():
-    """Check if current time is within business hours"""
+    """Check if current time is within business hours (9 AM - 5 PM, Mon-Fri)"""
     tz = pytz.timezone('Asia/Kolkata')
     current_time = datetime.now(tz)
     
-    # Weekend check
-    # if current_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
-    #     return False
+    # Weekend check (Monday = 0, Friday = 4)
+    if current_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
+        return False
     
-    # # Time check (9 AM - 6 PM)
-    # if current_time.hour < 9 or current_time.hour >=24:
-    #     return False
+    # Time check (9 AM - 5 PM)
+    if current_time.hour < 9 or current_time.hour >= 17:  # 17 = 5 PM
+        return False
     
     return True
 
-def send_options_message(conversation_id):
-    """Send interactive options based on business hours"""
-    if is_business_hours():
-        options = [
-            {"title": "Talk to our Executive", "value": "connect_agent"},
-            {"title": "Book a Demo", "value": "book_demo"}
-        ]
-        content = "How would you like to proceed?"
-    else:
-        options = [
-            {"title": "Book a Demo", "value": "book_demo"}
-        ]
-        content = "Our team is currently offline. You can book a demo at your convenience:"
+def send_offline_message(conversation_id):
+    """Send offline message with Cal.com booking link after receiving requirements"""
+    content = "Great! Thanks for sharing the information.\n\nWe're currently offline (our business hours are 9 AM - 5 PM, Monday to Friday). I'd love to connect you with our technical consultant to discuss your requirements in detail.\n\nYou can book a convenient time to chat:"
     
-    send_message(
-        conversation_id,
-        content,
-        content_type="input_select",
-        content_attributes={"items": options}
-    )
+    # Send the message with a Cal.com link
+    send_message(conversation_id, content)
+    
+    # Send the booking link as a separate message
+    send_message(conversation_id, "📅 Book your session: https://cal.com/your-booking-link")
+    
+    # Update conversation status to resolved since we're providing the booking link
+    update_conversation_status(conversation_id, "resolved")
+
+# def send_options_message(conversation_id):
+#     """Send interactive options based on business hours"""
+#     if is_business_hours():
+#         options = [
+#             {"title": "Talk to our Executive", "value": "connect_agent"},
+#             {"title": "Book a Demo", "value": "book_demo"}
+#         ]
+#         content = "How would you like to proceed?"
+#     else:
+#         options = [
+#             {"title": "Book a Demo", "value": "book_demo"}
+#         ]
+#         content = "Our team is currently offline. You can book a demo at your convenience:"
+    
+#     send_message(
+#         conversation_id,
+#         content,
+#         content_type="input_select",
+#         content_attributes={"items": options}
+#     )
 
 def create_conversation(contact_id, inbox_id, source_id):
     """Create a new conversation via Chatwoot API"""
@@ -163,10 +176,10 @@ def handle_webhook():
             conversation_id = create_conversation(contact_id, inbox_id, source_id)
             if conversation_id:
                 print(f"Widget triggered for conversation: {conversation_id}")
-                # Initialize state and send first question
-                conversation_states[conversation_id] = "awaiting_name"
-                send_message(conversation_id, "Hi! Welcome to our support. What is your name?")
-                return jsonify({"status": "success", "message": "First question sent"}), 200
+                # Always start with the same flow - ask for requirements
+                conversation_states[conversation_id] = "awaiting_requirements"
+                send_message(conversation_id, "Hi there! I'm Aayush, your Account Manager at Kuberns\nWelcome aboard! I'd love to help you get started with your account.\n\nCould you tell me a bit more about your requirements or what you'd like to achieve with our platform?")
+                return jsonify({"status": "success", "message": "Message sent"}), 200
         else:
             print("Missing required IDs in webwidget_triggered payload.")
             return jsonify({"status": "ignored", "reason": "Missing IDs"}), 200
@@ -188,56 +201,41 @@ def handle_webhook():
     state = conversation_states.get(conversation_id, "unknown")
     print(f"Current state: {state}")
     
-    # State machine for sequential questions
-    if state == "awaiting_name":
-        # Store name and ask next question
-        update_custom_attributes(conversation_id, {"customer_name": user_message})
-        send_message(conversation_id, "Great! What project do you want to deploy?")
-        conversation_states[conversation_id] = "awaiting_project"
-    
-    elif state == "awaiting_project":
-        # Store project and ask framework
-        update_custom_attributes(conversation_id, {"project_name": user_message})
-        send_message(conversation_id, "Interesting! What framework is it?")
-        conversation_states[conversation_id] = "awaiting_framework"
-    
-    elif state == "awaiting_framework":
-        # Store framework and show options
-        update_custom_attributes(conversation_id, {"framework": user_message})
-        send_options_message(conversation_id)
-        conversation_states[conversation_id] = "awaiting_choice"
-    
-    elif state == "awaiting_choice":
-        # Handle user's choice - check exact values from button clicks
-        if user_message == "connect_agent":
-            send_message(conversation_id, "Connecting you to our executive team. Someone will be with you shortly!")
+    # State machine for simplified flow
+    if state == "awaiting_requirements":
+        # Store requirements and check business hours for next step
+        update_custom_attributes(conversation_id, {"requirements": user_message})
+        
+        if is_business_hours():
+            # Business hours - connect to agent
+            send_message(conversation_id, "Great! Thanks for sharing the information. I am connecting you with our technical consultant.")
             update_conversation_status(conversation_id, "open")
             conversation_states[conversation_id] = "handed_off"
-        
-        elif user_message == "book_demo":
-            send_message(conversation_id, "Book your demo here: https://cal.com/your-booking-link")
-            update_conversation_status(conversation_id, "resolved")
-            conversation_states[conversation_id] = "completed"
-        
         else:
-            # Handle case where user types instead of clicking button
-            send_message(conversation_id, "Please select one of the options above.")
+            # Offline hours - send booking link
+            send_offline_message(conversation_id)
+            conversation_states[conversation_id] = "offline_handled"
     
     elif state == "handed_off":
         # Conversation is with human agent now, don't respond
         print(f"Conversation {conversation_id} is handed off to agent, ignoring message")
         return jsonify({"status": "ignored", "reason": "Handed off to agent"}), 200
     
-    elif state == "completed":
-        # Conversation is completed
-        print(f"Conversation {conversation_id} is completed")
-        return jsonify({"status": "ignored", "reason": "Conversation completed"}), 200
+    elif state == "offline_handled":
+        # User was given booking link during offline hours, don't respond
+        print(f"Conversation {conversation_id} was handled during offline hours, ignoring message")
+        return jsonify({"status": "ignored", "reason": "Offline hours handled"}), 200
+    
+    # elif state == "completed":
+    #     # Conversation is completed
+    #     print(f"Conversation {conversation_id} is completed")
+    #     return jsonify({"status": "ignored", "reason": "Conversation completed"}), 200
     
     else:
         # Unknown state - restart flow
         print(f"Unknown state for conversation {conversation_id}, restarting flow")
-        conversation_states[conversation_id] = "awaiting_name"
-        send_message(conversation_id, "Hi! What is your name?")
+        conversation_states[conversation_id] = "awaiting_requirements"
+        send_message(conversation_id, "Hi there! I'm Aayush, your Account Manager at Kuberns\nWelcome aboard! I'd love to help you get started with your account.\n\nCould you tell me a bit more about your requirements or what you'd like to achieve with our platform?")
     
     return jsonify({"status": "success"}), 200
 
