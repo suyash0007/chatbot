@@ -96,29 +96,29 @@ def update_conversation_status(conversation_id, status):
         return None
 
 def is_business_hours():
-    """Check if current time is within business hours (9 AM - 5 PM, Mon-Fri)"""
+    """Check if current time is within business hours (10 AM - 6 PM, Mon-Sat)"""
     tz = pytz.timezone('Asia/Kolkata')
     current_time = datetime.now(tz)
     
-    # Weekend check (Monday = 0, Friday = 4)
-    if current_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
+    # Weekend check (Monday = 0, Saturday = 5, Sunday = 6)
+    if current_time.weekday() >= 6:  # Sunday = 6
         return False
     
-    # Time check (9 AM - 5 PM)
-    if current_time.hour < 9 or current_time.hour >= 17:  # 17 = 5 PM
+    # Time check (10 AM - 6 PM)
+    if current_time.hour < 10 or current_time.hour >= 18:  # 18 = 6 PM
         return False
     
     return True
 
 def send_offline_message(conversation_id):
     """Send offline message with Cal.com booking link after receiving requirements"""
-    content = "Great! Thanks for sharing the information.\n\nWe're currently offline (our business hours are 9 AM - 5 PM, Monday to Friday). I'd love to connect you with our technical consultant to discuss your requirements in detail.\n\nYou can book a convenient time to chat:"
+    content = "Great! Thanks for sharing the information.\n\nWe're currently offline. I'd love to connect you with our technical consultant to discuss your requirements in detail.\n\nYou can book a convenient time to chat Or send us an email at support@kuberns.com and we'll get back to you!"
     
     # Send the message with a Cal.com link
     send_message(conversation_id, content)
     
     # Send the booking link as a separate message
-    send_message(conversation_id, "📅 Book your session: https://cal.com/your-booking-link")
+    send_message(conversation_id, "📅 Book your session: https://cal.com/kuberns-demo-meet/30min")
     
     # Update conversation status to resolved since we're providing the booking link
     update_conversation_status(conversation_id, "resolved")
